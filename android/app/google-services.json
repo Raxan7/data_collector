@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1046090672930",
+    "project_id": "data-collector-flutter-app",
+    "storage_bucket": "data-collector-flutter-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1046090672930:android:b3bd78d75c55f5820b537b",
+        "android_client_info": {
+          "package_name": "com.example.data_collector"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDFXpAntvHBHNyKh_Iginc_D7BH5CTEFHU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
