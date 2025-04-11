@@ -3,8 +3,8 @@ import 'package:cloudinary/cloudinary.dart';
 
 class CloudinaryService {
   static final cloudinary = Cloudinary.signedConfig(
-    apiKey: 'your_api_key',
-    apiSecret: 'your_api_secret',
+    apiKey: '463778388412657',
+    apiSecret: '-ohofO2WCM2YdwCgbGfocwCsGNs',
     cloudName: 'dvbdol5uj',
   );
 
