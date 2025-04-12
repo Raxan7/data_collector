@@ -16,34 +16,35 @@ class _FormScreenState extends State<FormScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
   final List<String> _reportTypes = ['LUKU', 'FUEL'];
   String? _selectedReportType;
-  String? _plcDisplayPhotoPath;
-  String? _lukuBeforePhotoPath;
-  String? _lukuAfterPhotoPath;
+  File? _plcDisplayPhoto;
+  File? _lukuBeforePhoto;
+  File? _lukuAfterPhoto;
 
-  final TextEditingController titleController = TextEditingController();
-  final TextEditingController descriptionController = TextEditingController();
-  final TextEditingController technicianNameController = TextEditingController();
-  final TextEditingController reportTypeController = TextEditingController();
-  final TextEditingController siteIdController = TextEditingController();
-  final TextEditingController fuelRemainingBeforeController = TextEditingController();
-  final TextEditingController fuelAddedController = TextEditingController();
-  final TextEditingController genRunningHoursController = TextEditingController();
-  final TextEditingController lukuUnitsBeforeController = TextEditingController();
-  final TextEditingController lukuUnitsAfterController = TextEditingController();
+  // Controllers for all fields
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _technicianNameController = TextEditingController();
+  final TextEditingController _siteIdController = TextEditingController();
+  final TextEditingController _fuelRemainingBeforeController = TextEditingController();
+  final TextEditingController _fuelAddedController = TextEditingController();
+  final TextEditingController _genRunningHoursController = TextEditingController();
+  final TextEditingController _lukuUnitsBeforeController = TextEditingController();
+  final TextEditingController _lukuUnitsAfterController = TextEditingController();
 
   Future<void> _takePhoto(String photoType) async {
     final image = await ImagePicker().pickImage(source: ImageSource.camera);
     if (image != null) {
       setState(() {
+        final file = File(image.path);
         switch (photoType) {
           case 'plc':
-            _plcDisplayPhotoPath = image.path;
+            _plcDisplayPhoto = file;
             break;
           case 'luku_before':
-            _lukuBeforePhotoPath = image.path;
+            _lukuBeforePhoto = file;
             break;
           case 'luku_after':
-            _lukuAfterPhotoPath = image.path;
+            _lukuAfterPhoto = file;
             break;
         }
       });
@@ -51,68 +52,95 @@ class _FormScreenState extends State<FormScreen> {
   }
 
   void _submitForm() async {
-    if (_formKey.currentState!.saveAndValidate()) {
+    if (_formKey.currentState?.saveAndValidate() ?? false) {
       try {
+        // Get the form values
+        final formValues = _formKey.currentState!.value;
+        
+        // Create the report with all fields
         final report = TechnicalReport(
           id: '', // Firestore will auto-generate ID
-          title: titleController.text,
-          description: descriptionController.text,
-          technicianName: technicianNameController.text,
-          reportType: reportTypeController.text,
-          siteId: siteIdController.text,
+          title: formValues['title'] ?? '',
+          description: formValues['description'] ?? '',
+          technicianName: formValues['technicianName'] ?? '',
+          reportType: _selectedReportType ?? '',
+          siteId: formValues['siteId'] ?? '',
           createdAt: DateTime.now(),
           timestamp: DateTime.now(),
-          fuelRemainingBefore: fuelRemainingBeforeController.text.isNotEmpty
-              ? double.tryParse(fuelRemainingBeforeController.text)
+          fuelRemainingBefore: formValues['fuelRemainingBefore'] != null 
+              ? double.tryParse(formValues['fuelRemainingBefore'].toString())
               : null,
-          fuelAdded: fuelAddedController.text.isNotEmpty
-              ? double.tryParse(fuelAddedController.text)
+          fuelAdded: formValues['fuelAdded'] != null
+              ? double.tryParse(formValues['fuelAdded'].toString())
               : null,
-          genRunningHours: genRunningHoursController.text.isNotEmpty
-              ? double.tryParse(genRunningHoursController.text)
+          genRunningHours: formValues['genRunningHours'] != null
+              ? double.tryParse(formValues['genRunningHours'].toString())
               : null,
-          plcDisplayPhotoUrl: _plcDisplayPhotoPath,
-          lukuUnitsBefore: lukuUnitsBeforeController.text.isNotEmpty
-              ? double.tryParse(lukuUnitsBeforeController.text)
+          plcDisplayPhotoUrl: _plcDisplayPhoto?.path,
+          lukuUnitsBefore: formValues['lukuUnitsBefore'] != null
+              ? double.tryParse(formValues['lukuUnitsBefore'].toString())
               : null,
-          lukuUnitsAfter: lukuUnitsAfterController.text.isNotEmpty
-              ? double.tryParse(lukuUnitsAfterController.text)
+          lukuUnitsAfter: formValues['lukuUnitsAfter'] != null
+              ? double.tryParse(formValues['lukuUnitsAfter'].toString())
               : null,
-          lukuBeforePhotoUrl: _lukuBeforePhotoPath,
-          lukuAfterPhotoUrl: _lukuAfterPhotoPath,
+          lukuBeforePhotoUrl: _lukuBeforePhoto?.path,
+          lukuAfterPhotoUrl: _lukuAfterPhoto?.path,
         );
         
         await DBService.addEntry(report);
+        
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Report submitted successfully!')),
+          const SnackBar(
+            content: Text('Report submitted successfully!'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
         _resetForm();
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Submission failed: ${e.toString()}')),
+          SnackBar(
+            content: Text('Submission failed: ${e.toString()}'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     }
   }
 
   void _resetForm() {
-    _formKey.currentState!.reset();
+    _formKey.currentState?.reset();
     setState(() {
       _selectedReportType = null;
-      _plcDisplayPhotoPath = null;
-      _lukuBeforePhotoPath = null;
-      _lukuAfterPhotoPath = null;
+      _plcDisplayPhoto = null;
+      _lukuBeforePhoto = null;
+      _lukuAfterPhoto = null;
     });
-    titleController.clear();
-    descriptionController.clear();
-    technicianNameController.clear();
-    reportTypeController.clear();
-    siteIdController.clear();
-    fuelRemainingBeforeController.clear();
-    fuelAddedController.clear();
-    genRunningHoursController.clear();
-    lukuUnitsBeforeController.clear();
-    lukuUnitsAfterController.clear();
+    _titleController.clear();
+    _descriptionController.clear();
+    _technicianNameController.clear();
+    _siteIdController.clear();
+    _fuelRemainingBeforeController.clear();
+    _fuelAddedController.clear();
+    _genRunningHoursController.clear();
+    _lukuUnitsBeforeController.clear();
+    _lukuUnitsAfterController.clear();
+  }
+
+  TextEditingController _getControllerForField(String fieldName) {
+    switch (fieldName) {
+      case 'title': return _titleController;
+      case 'description': return _descriptionController;
+      case 'technicianName': return _technicianNameController;
+      case 'siteId': return _siteIdController;
+      case 'fuelRemainingBefore': return _fuelRemainingBeforeController;
+      case 'fuelAdded': return _fuelAddedController;
+      case 'genRunningHours': return _genRunningHoursController;
+      case 'lukuUnitsBefore': return _lukuUnitsBeforeController;
+      case 'lukuUnitsAfter': return _lukuUnitsAfterController;
+      default: return TextEditingController();
+    }
   }
 
   @override
@@ -133,7 +161,9 @@ class _FormScreenState extends State<FormScreen> {
           key: _formKey,
           child: Column(
             children: [
-              _buildTextField('technicianName', 'Name of Technical', true),
+              _buildTextField('title', 'Report Title', false),
+              _buildTextField('description', 'Description', false),
+              _buildTextField('technicianName', 'Name of Technician', true),
               
               FormBuilderDropdown<String>(
                 name: 'reportType',
@@ -162,8 +192,8 @@ class _FormScreenState extends State<FormScreen> {
                 _buildNumberField('fuelAdded', 'Fuel Added', true),
                 _buildNumberField('genRunningHours', 'Gen Running Hours', true),
                 
-                if (_plcDisplayPhotoPath != null) 
-                  _buildPhotoPreview(_plcDisplayPhotoPath!),
+                if (_plcDisplayPhoto != null) 
+                  _buildPhotoPreview(_plcDisplayPhoto!),
                 
                 ElevatedButton.icon(
                   icon: const Icon(Icons.camera_alt),
@@ -179,8 +209,8 @@ class _FormScreenState extends State<FormScreen> {
                 _buildNumberField('lukuUnitsBefore', 'Luku Remain Units Before Add', true),
                 _buildNumberField('lukuUnitsAfter', 'Luku Units After Added', true),
                 
-                if (_lukuBeforePhotoPath != null) 
-                  _buildPhotoPreview(_lukuBeforePhotoPath!),
+                if (_lukuBeforePhoto != null) 
+                  _buildPhotoPreview(_lukuBeforePhoto!),
                 
                 ElevatedButton.icon(
                   icon: const Icon(Icons.camera_alt),
@@ -188,8 +218,8 @@ class _FormScreenState extends State<FormScreen> {
                   onPressed: () => _takePhoto('luku_before'),
                 ),
                 
-                if (_lukuAfterPhotoPath != null) 
-                  _buildPhotoPreview(_lukuAfterPhotoPath!),
+                if (_lukuAfterPhoto != null) 
+                  _buildPhotoPreview(_lukuAfterPhoto!),
                 
                 ElevatedButton.icon(
                   icon: const Icon(Icons.camera_alt),
@@ -235,6 +265,7 @@ class _FormScreenState extends State<FormScreen> {
       padding: const EdgeInsets.only(bottom: 16),
       child: FormBuilderTextField(
         name: name,
+        controller: _getControllerForField(name),
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
@@ -253,6 +284,7 @@ class _FormScreenState extends State<FormScreen> {
       padding: const EdgeInsets.only(bottom: 16),
       child: FormBuilderTextField(
         name: name,
+        controller: _getControllerForField(name),
         decoration: InputDecoration(
           labelText: label,
           border: const OutlineInputBorder(),
@@ -269,13 +301,13 @@ class _FormScreenState extends State<FormScreen> {
     );
   }
 
-  Widget _buildPhotoPreview(String path) {
+  Widget _buildPhotoPreview(File image) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Image.file(
-          File(path),
+          image,
           height: 150,
           fit: BoxFit.cover,
         ),
