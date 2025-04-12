@@ -9,7 +9,10 @@ class FirebaseService {
   static final FirebaseStorage _storage = FirebaseStorage.instance;
 
   static Future<void> addReport(TechnicalReport report) async {
-    await _reportsCollection.add(report.toFirestore());
+    // Remove the empty ID and let Firestore auto-generate it
+    final data = report.toFirestore();
+    data.remove('id'); // Remove the empty ID field
+    await _reportsCollection.add(data);
   }
 
   static Stream<List<TechnicalReport>> getReportsStream() {
@@ -17,11 +20,17 @@ class FirebaseService {
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => TechnicalReport.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+            .map((doc) {
+              final data = (doc as QueryDocumentSnapshot<Map<String, dynamic>>).data();
+              return TechnicalReport.fromFirestore(doc);
+            })
             .toList());
   }
 
   static Future<void> deleteReport(String docId) async {
+    if (docId.isEmpty) {
+      throw Exception('Cannot delete report with empty ID');
+    }
     await _reportsCollection.doc(docId).delete();
   }
 

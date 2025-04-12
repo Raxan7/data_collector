@@ -79,10 +79,44 @@ class _ListScreenState extends State<ListScreen> {
   }
 
   Future<void> _deleteEntry(String docId) async {
-    await DBService.deleteEntry(docId);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Report deleted')),
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Report'),
+        content: const Text('Are you sure you want to delete this report?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
+
+    if (confirmed ?? false) {
+      try {
+        await DBService.deleteEntry(docId);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Report deleted successfully'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete report: ${e.toString()}'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _exportData() async {
@@ -117,16 +151,20 @@ class _ListScreenState extends State<ListScreen> {
                 const Divider(),
                 const Text('Fuel Details', 
                   style: TextStyle(fontWeight: FontWeight.bold)),
-                _buildDetailRow('Fuel Before', '${entry.fuelRemainingBefore ?? 'N/A'} L'),
-                _buildDetailRow('Fuel Added', '${entry.fuelAdded ?? 'N/A'} L'),
-                _buildDetailRow('Gen Hours', '${entry.genRunningHours ?? 'N/A'} hrs'),
+                _buildDetailRow('Fuel Before', '${entry.fuelRemainingBefore?.toStringAsFixed(2) ?? 'N/A'} L'),
+                _buildDetailRow('Fuel Added', '${entry.fuelAdded?.toStringAsFixed(2) ?? 'N/A'} L'),
+                _buildDetailRow('Gen Hours', '${entry.genRunningHours?.toStringAsFixed(2) ?? 'N/A'} hrs'),
                 
-                // In your _showDetails method, replace Image.file with:
-                if (entry.plcDisplayPhotoUrl != null) ...[
+                if (entry.plcDisplayPhotoUrl != null && entry.plcDisplayPhotoUrl!.startsWith('http')) ...[
                   const SizedBox(height: 8),
                   const Text('PLC Display Photo:',
                     style: TextStyle(fontWeight: FontWeight.bold)),
-                  Image.network(entry.plcDisplayPhotoUrl!),
+                  Image.network(
+                    entry.plcDisplayPhotoUrl!,
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
                 ],
               ],
               
@@ -134,21 +172,31 @@ class _ListScreenState extends State<ListScreen> {
                 const Divider(),
                 const Text('LUKU Details', 
                   style: TextStyle(fontWeight: FontWeight.bold)),
-                _buildDetailRow('Units Before', '${entry.lukuUnitsBefore ?? 'N/A'}'),
-                _buildDetailRow('Units After', '${entry.lukuUnitsAfter ?? 'N/A'}'),
+                _buildDetailRow('Units Before', '${entry.lukuUnitsBefore?.toStringAsFixed(2) ?? 'N/A'}'),
+                _buildDetailRow('Units After', '${entry.lukuUnitsAfter?.toStringAsFixed(2) ?? 'N/A'}'),
                 
-                if (entry.lukuBeforePhotoUrl != null) ...[
+                if (entry.lukuBeforePhotoUrl != null && entry.lukuBeforePhotoUrl!.startsWith('http')) ...[
                   const SizedBox(height: 8),
                   const Text('Before Photo:',
                     style: TextStyle(fontWeight: FontWeight.bold)),
-                  Image.file(File(entry.lukuBeforePhotoUrl!)),
+                  Image.network(
+                    entry.lukuBeforePhotoUrl!,
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
                 ],
                 
-                if (entry.lukuAfterPhotoUrl != null) ...[
+                if (entry.lukuAfterPhotoUrl != null && entry.lukuAfterPhotoUrl!.startsWith('http')) ...[
                   const SizedBox(height: 8),
                   const Text('After Photo:',
                     style: TextStyle(fontWeight: FontWeight.bold)),
-                  Image.file(File(entry.lukuAfterPhotoUrl!)),
+                  Image.network(
+                    entry.lukuAfterPhotoUrl!,
+                    height: 200,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
                 ],
               ],
             ],

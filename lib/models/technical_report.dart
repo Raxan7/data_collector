@@ -100,7 +100,7 @@ class TechnicalReport {
   factory TechnicalReport.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return TechnicalReport(
-      id: data['id'] ?? doc.id,
+      id: doc.id, // Use the document ID from Firestore
       title: data['title'] ?? '',
       description: data['description'] ?? '',
       technicianName: data['technicianName'] ?? '',

@@ -6,18 +6,18 @@ import 'cloudinary_service.dart';
 class DBService {
   static Future<void> addEntry(TechnicalReport report) async {
     try {
-      // Upload images to Cloudinary if they exist
-      if (report.plcDisplayPhotoUrl != null) {
+      // Upload images to Cloudinary if they exist and are local files
+      if (report.plcDisplayPhotoUrl != null && !report.plcDisplayPhotoUrl!.startsWith('http')) {
         final url = await CloudinaryService.uploadImage(report.plcDisplayPhotoUrl!);
         if (url != null) report.updatePlcPhotoPath(url);
       }
       
-      if (report.lukuBeforePhotoUrl != null) {
+      if (report.lukuBeforePhotoUrl != null && !report.lukuBeforePhotoUrl!.startsWith('http')) {
         final url = await CloudinaryService.uploadImage(report.lukuBeforePhotoUrl!);
         if (url != null) report.updateLukuBeforePath(url);
       }
       
-      if (report.lukuAfterPhotoUrl != null) {
+      if (report.lukuAfterPhotoUrl != null && !report.lukuAfterPhotoUrl!.startsWith('http')) {
         final url = await CloudinaryService.uploadImage(report.lukuAfterPhotoUrl!);
         if (url != null) report.updateLukuAfterPath(url);
       }
@@ -35,6 +35,9 @@ class DBService {
   }
 
   static Future<void> deleteEntry(String docId) async {
+    if (docId.isEmpty) {
+      throw Exception('Cannot delete report with empty ID');
+    }
     await FirebaseService.deleteReport(docId);
   }
 }

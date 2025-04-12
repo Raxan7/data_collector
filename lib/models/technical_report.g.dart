@@ -28,12 +28,12 @@ class TechnicalReportAdapter extends TypeAdapter<TechnicalReport> {
       fuelRemainingBefore: fields[8] as double?,
       fuelAdded: fields[9] as double?,
       genRunningHours: fields[10] as double?,
+      plcDisplayPhotoUrl: fields[11] as String?,
       lukuUnitsBefore: fields[12] as double?,
       lukuUnitsAfter: fields[13] as double?,
-    )
-      ..plcDisplayPhotoUrl = fields[11] as String?
-      ..lukuBeforePhotoUrl = fields[14] as String?
-      ..lukuAfterPhotoUrl = fields[15] as String?;
+      lukuBeforePhotoUrl: fields[14] as String?,
+      lukuAfterPhotoUrl: fields[15] as String?,
+    );
   }
 
   @override
