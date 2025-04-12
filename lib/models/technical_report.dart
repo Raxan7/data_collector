@@ -9,54 +9,46 @@ class TechnicalReport {
   final String id;
 
   @HiveField(1)
-  final String title;
-
-  @HiveField(2)
-  final String description;
-
-  @HiveField(3)
   final String technicianName;
 
-  @HiveField(4)
+  @HiveField(2)
   final String reportType;
 
-  @HiveField(5)
+  @HiveField(3)
   final String siteId;
 
-  @HiveField(6)
+  @HiveField(4)
   final DateTime createdAt;
 
-  @HiveField(7)
+  @HiveField(5)
   final DateTime timestamp;
 
-  @HiveField(8)
+  @HiveField(6)
   final double? fuelRemainingBefore;
 
-  @HiveField(9)
+  @HiveField(7)
   final double? fuelAdded;
 
-  @HiveField(10)
+  @HiveField(8)
   final double? genRunningHours;
 
-  @HiveField(11)
+  @HiveField(9)
   String? plcDisplayPhotoUrl; // Changed from plcDisplayPhotoPath
 
-  @HiveField(12)
+  @HiveField(10)
   final double? lukuUnitsBefore;
 
-  @HiveField(13)
+  @HiveField(11)
   final double? lukuUnitsAfter;
 
-  @HiveField(14)
+  @HiveField(12)
   String? lukuBeforePhotoUrl; // Changed from lukuBeforePhotoPath
 
-  @HiveField(15)
+  @HiveField(13)
   String? lukuAfterPhotoUrl; // Changed from lukuAfterPhotoPath
 
   TechnicalReport({
     required this.id,
-    required this.title,
-    required this.description,
     required this.technicianName,
     required this.reportType,
     required this.siteId,
@@ -79,8 +71,6 @@ class TechnicalReport {
   Map<String, dynamic> toFirestore() {
     return {
       'id': id,
-      'title': title,
-      'description': description,
       'technicianName': technicianName,
       'reportType': reportType,
       'siteId': siteId,
@@ -101,8 +91,6 @@ class TechnicalReport {
     final data = doc.data()!;
     return TechnicalReport(
       id: doc.id, // Use the document ID from Firestore
-      title: data['title'] ?? '',
-      description: data['description'] ?? '',
       technicianName: data['technicianName'] ?? '',
       reportType: data['reportType'] ?? '',
       siteId: data['siteId'] ?? '',

@@ -15,71 +15,161 @@ class ListScreen extends StatefulWidget {
 }
 
 class _ListScreenState extends State<ListScreen> {
-  final dateFormat = DateFormat('MMM dd, yyyy HH:mm');
+  bool _isLoading = true;
+  List<TechnicalReport> _reports = [];
+  String _selectedFilter = 'ALL';
+  final List<String> _filterOptions = ['ALL', 'FUEL', 'LUKU'];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReports();
+  }
+
+  Future<void> _loadReports() async {
+    setState(() => _isLoading = true);
+    try {
+      // Get the first snapshot from the stream
+      final reports = await DBService.getAllEntriesStream().first;
+      setState(() {
+        _reports = reports;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to load reports: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  List<TechnicalReport> get _filteredReports {
+    if (_selectedFilter == 'ALL') return _reports;
+    return _reports.where((report) => report.reportType == _selectedFilter).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tanga Tech Tool - Reports'),
+        title: const Text('Reports'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.download),
-            onPressed: _exportData,
-            tooltip: 'Export to CSV',
+            icon: const Icon(Icons.refresh),
+            onPressed: _isLoading ? null : _loadReports,
           ),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              AuthService.logout();
-              Navigator.pushReplacementNamed(context, '/');
-            },
+            onPressed: () => Navigator.pushReplacementNamed(context, '/'),
           ),
         ],
       ),
-      body: StreamBuilder<List<TechnicalReport>>(
-        stream: DBService.getAllEntriesStream(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          
-          final reports = snapshot.data ?? [];
-          
-          return ListView.builder(
-            itemCount: reports.length,
-            itemBuilder: (context, index) {
-              final entry = reports[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                child: ListTile(
-                  title: Text(entry.technicianName),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('${entry.reportType} - ${entry.siteId}'),
-                      Text('Submitted: ${dateFormat.format(entry.timestamp)}'),
-                    ],
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _deleteEntry(entry.id),
-                  ),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => DetailScreen(entry: entry),
-                    ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                const Text(
+                  'Filter:',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
-              );
-            },
-          );
+                const SizedBox(width: 16),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedFilter,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16),
+                    ),
+                    items: _filterOptions
+                        .map((type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(type),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() => _selectedFilter = value);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredReports.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'No reports found',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _loadReports,
+                        child: ListView.builder(
+                          itemCount: _filteredReports.length,
+                          itemBuilder: (context, index) {
+                            final report = _filteredReports[index];
+                            return Card(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: ListTile(
+                                title: Text(
+                                  '${report.reportType} Report - ${report.siteId}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Technician: ${report.technicianName}'),
+                                    Text(
+                                      'Date: ${report.createdAt.day}/${report.createdAt.month}/${report.createdAt.year}',
+                                    ),
+                                  ],
+                                ),
+                                trailing: const Icon(Icons.arrow_forward_ios),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          DetailScreen(report: report),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.pushNamed(context, '/form');
         },
+        child: const Icon(Icons.add),
       ),
     );
   }

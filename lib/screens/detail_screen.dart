@@ -1,68 +1,126 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/technical_report.dart';
 
 class DetailScreen extends StatelessWidget {
-  final TechnicalReport entry;
+  final TechnicalReport report;
 
-  DetailScreen({required this.entry});
-
-  final dateFormat = DateFormat('MMM dd, yyyy HH:mm');
+  const DetailScreen({super.key, required this.report});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${entry.reportType} Report - ${entry.siteId}'),
+        title: const Text('Report Details'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow('Technician', entry.technicianName),
-            _buildDetailRow('Site ID', entry.siteId),
-            _buildDetailRow('Submitted', dateFormat.format(entry.timestamp)),
-            if (entry.reportType == 'FUEL') ...[
-              const Divider(),
-              const Text('Fuel Details', style: TextStyle(fontWeight: FontWeight.bold)),
-              _buildDetailRow('Fuel Before', '${entry.fuelRemainingBefore?.toStringAsFixed(2) ?? 'N/A'} L'),
-              _buildDetailRow('Fuel Added', '${entry.fuelAdded?.toStringAsFixed(2) ?? 'N/A'} L'),
-              _buildDetailRow('Gen Hours', '${entry.genRunningHours?.toStringAsFixed(2) ?? 'N/A'} hrs'),
-              if (entry.plcDisplayPhotoUrl != null && entry.plcDisplayPhotoUrl!.startsWith('http')) ...[
-                const SizedBox(height: 8),
-                const Text('PLC Display Photo:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Image.network(
-                  entry.plcDisplayPhotoUrl!,
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+            _buildDetailCard(
+              'Technician Information',
+              [
+                _buildDetailRow('Name', report.technicianName),
+                _buildDetailRow('Site ID', report.siteId),
+                _buildDetailRow('Report Type', report.reportType),
+                _buildDetailRow('Date', 
+                  '${report.createdAt.day}/${report.createdAt.month}/${report.createdAt.year}'),
+                _buildDetailRow('Time', 
+                  '${report.createdAt.hour}:${report.createdAt.minute}'),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
+            if (report.reportType == 'FUEL') ...[
+              _buildDetailCard(
+                'Fuel Details',
+                [
+                  if (report.fuelRemainingBefore != null)
+                    _buildDetailRow('Fuel Remaining Before', 
+                      '${report.fuelRemainingBefore} L'),
+                  if (report.fuelAdded != null)
+                    _buildDetailRow('Fuel Added', '${report.fuelAdded} L'),
+                  if (report.genRunningHours != null)
+                    _buildDetailRow('Generator Running Hours', 
+                      '${report.genRunningHours} hours'),
+                ],
+              ),
+              
+              if (report.plcDisplayPhotoUrl != null) ...[
+                const SizedBox(height: 16),
+                _buildDetailCard(
+                  'PLC Display Photo',
+                  [
+                    Center(
+                      child: Image.network(
+                        report.plcDisplayPhotoUrl!,
+                        height: 200,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Center(
+                            child: Text('Failed to load image'),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],
-            if (entry.reportType == 'LUKU') ...[
-              const Divider(),
-              const Text('LUKU Details', style: TextStyle(fontWeight: FontWeight.bold)),
-              _buildDetailRow('Units Before', '${entry.lukuUnitsBefore?.toStringAsFixed(2) ?? 'N/A'}'),
-              _buildDetailRow('Units After', '${entry.lukuUnitsAfter?.toStringAsFixed(2) ?? 'N/A'}'),
-              if (entry.lukuBeforePhotoUrl != null && entry.lukuBeforePhotoUrl!.startsWith('http')) ...[
-                const SizedBox(height: 8),
-                const Text('Before Photo:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Image.network(
-                  entry.lukuBeforePhotoUrl!,
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+            
+            if (report.reportType == 'LUKU') ...[
+              _buildDetailCard(
+                'LUKU Details',
+                [
+                  if (report.lukuUnitsBefore != null)
+                    _buildDetailRow('Units Before', 
+                      '${report.lukuUnitsBefore} units'),
+                  if (report.lukuUnitsAfter != null)
+                    _buildDetailRow('Units After', 
+                      '${report.lukuUnitsAfter} units'),
+                ],
+              ),
+              
+              if (report.lukuBeforePhotoUrl != null) ...[
+                const SizedBox(height: 16),
+                _buildDetailCard(
+                  'Before Units Photo',
+                  [
+                    Center(
+                      child: Image.network(
+                        report.lukuBeforePhotoUrl!,
+                        height: 200,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Center(
+                            child: Text('Failed to load image'),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
-              if (entry.lukuAfterPhotoUrl != null && entry.lukuAfterPhotoUrl!.startsWith('http')) ...[
-                const SizedBox(height: 8),
-                const Text('After Photo:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Image.network(
-                  entry.lukuAfterPhotoUrl!,
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+              
+              if (report.lukuAfterPhotoUrl != null) ...[
+                const SizedBox(height: 16),
+                _buildDetailCard(
+                  'After Units Photo',
+                  [
+                    Center(
+                      child: Image.network(
+                        report.lukuAfterPhotoUrl!,
+                        height: 200,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Center(
+                            child: Text('Failed to load image'),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],
@@ -72,17 +130,50 @@ class DetailScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildDetailCard(String title, List<Widget> children) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.only(bottom: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          SizedBox(
+            width: 150,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-          Expanded(child: Text(value)),
+          Expanded(
+            child: Text(value),
+          ),
         ],
       ),
     );
