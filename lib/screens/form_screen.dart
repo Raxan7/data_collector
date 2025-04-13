@@ -123,6 +123,8 @@ class _FormScreenState extends State<FormScreen> {
           setState(() => _isSubmitting = false);
         }
       }
+    } else {
+      _formKey.currentState?.save(); // Ensure values are saved even if validation fails
     }
   }
 
@@ -152,7 +154,8 @@ class _FormScreenState extends State<FormScreen> {
       case 'genRunningHours': return _genRunningHoursController;
       case 'lukuUnitsBefore': return _lukuUnitsBeforeController;
       case 'lukuUnitsAfter': return _lukuUnitsAfterController;
-      default: return TextEditingController();
+      default:
+        throw ArgumentError('Unknown field name: $fieldName'); // Prevent creating new controllers dynamically
     }
   }
 
@@ -176,96 +179,55 @@ class _FormScreenState extends State<FormScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildTextField('technicianName', 'Name of Technician', true),
-              
               const SizedBox(height: 16),
-              FormBuilderDropdown<String>(
-                name: 'reportType',
-                decoration: const InputDecoration(
-                  labelText: 'Select Report Type',
-                  border: OutlineInputBorder(),
-                  filled: true,
-                  fillColor: Colors.white,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: FormBuilderDropdown<String>(
+                  name: 'reportType',
+                  decoration: InputDecoration(
+                    labelText: 'Select Report Type',
+                    labelStyle: const TextStyle(color: Colors.white), // Improved label visibility
+                    border: const OutlineInputBorder(),
+                    filled: true,
+                    fillColor: const Color(0xFF2C2C2C), // Darker background for dropdown
+                  ),
+                  style: const TextStyle(fontSize: 16, color: Colors.white), // Improved text visibility
+                  dropdownColor: const Color(0xFF2C2C2C), // Dropdown menu background color
+                  items: _reportTypes
+                      .map((type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(
+                              type,
+                              style: const TextStyle(color: Colors.white), // Dropdown item text color
+                            ),
+                          ))
+                      .toList(),
+                  validator: (value) =>
+                      value == null ? 'Please select report type' : null,
+                  onChanged: (value) => setState(() => _selectedReportType = value),
                 ),
-                items: _reportTypes
-                    .map((type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        ))
-                    .toList(),
-                validator: (value) =>
-                    value == null ? 'Please select report type' : null,
-                onChanged: (value) => setState(() => _selectedReportType = value),
               ),
-              
-              const SizedBox(height: 16),
               _buildTextField('siteId', 'SITE ID', true),
-              
-              if (_selectedReportType == 'FUEL') ...[
-                const SizedBox(height: 24),
-                const Text('Fuel Report Details',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                const SizedBox(height: 16),
-                _buildNumberField('fuelRemainingBefore', 'Fuel Remain Before Adding', true),
-                _buildNumberField('fuelAdded', 'Fuel Added', true),
-                _buildNumberField('genRunningHours', 'Gen Running Hours', true),
-                
-                if (_plcDisplayPhoto != null) 
-                  _buildPhotoPreview(_plcDisplayPhoto!),
-                
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text('Take Picture of PLC Display'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: Colors.blue,
-                  ),
-                  onPressed: () => _takePhoto('plc'),
-                ),
-              ],
-              
-              if (_selectedReportType == 'LUKU') ...[
-                const SizedBox(height: 24),
-                const Text('LUKU Report Details',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                const SizedBox(height: 16),
-                _buildNumberField('lukuUnitsBefore', 'Luku Remain Units Before Add', true),
-                _buildNumberField('lukuUnitsAfter', 'Luku Units After Added', true),
-                
-                if (_lukuBeforePhoto != null) 
-                  _buildPhotoPreview(_lukuBeforePhoto!),
-                
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text('Take Picture Before Add Units'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: Colors.blue,
-                  ),
-                  onPressed: () => _takePhoto('luku_before'),
-                ),
-                
-                if (_lukuAfterPhoto != null) 
-                  _buildPhotoPreview(_lukuAfterPhoto!),
-                
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text('Take Picture After Add Units'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: Colors.blue,
-                  ),
-                  onPressed: () => _takePhoto('luku_after'),
-                ),
-              ],
-              
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300), // Smooth transitions
+                child: _selectedReportType == 'FUEL'
+                    ? _buildFuelReportDetails()
+                    : _selectedReportType == 'LUKU'
+                        ? _buildLukuReportDetails()
+                        : const SizedBox.shrink(),
+              ),
               const SizedBox(height: 24),
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8), // Rounded corners
+                        ),
                       ),
                       onPressed: _isSubmitting ? null : _resetForm,
                       child: const Text('Reset'),
@@ -276,16 +238,27 @@ class _FormScreenState extends State<FormScreen> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Colors.green,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8), // Rounded corners
+                        ),
                       ),
                       onPressed: _isSubmitting ? null : _submitForm,
                       child: _isSubmitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Text('Submitting...'),
+                              ],
                             )
                           : const Text('Submit'),
                     ),
@@ -299,6 +272,112 @@ class _FormScreenState extends State<FormScreen> {
     );
   }
 
+  Widget _buildFuelReportDetails() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 24),
+        const Text(
+          'Fuel Report Details',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        const SizedBox(height: 16),
+        _buildNumberField('fuelRemainingBefore', 'Fuel Remaining Before Adding', true),
+        _buildNumberField('fuelAdded', 'Fuel Added', true),
+        _buildNumberField('genRunningHours', 'Generator Running Hours', true),
+        if (_plcDisplayPhoto != null) _buildPhotoPreview(_plcDisplayPhoto!),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Take Picture of PLC Display'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8), // Rounded corners
+              ),
+            ),
+            onPressed: () => _takePhoto('plc'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLukuReportDetails() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 24),
+        const Text(
+          'LUKU Report Details',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        const SizedBox(height: 16),
+        _buildNumberField('lukuUnitsBefore', 'Luku Units Before Addition', true),
+        _buildNumberField('lukuUnitsAfter', 'Luku Units After Addition', true),
+        if (_lukuBeforePhoto != null) _buildPhotoPreview(_lukuBeforePhoto!),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Take Picture Before Adding Units'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8), // Rounded corners
+              ),
+            ),
+            onPressed: () => _takePhoto('luku_before'),
+          ),
+        ),
+        if (_lukuAfterPhoto != null) _buildPhotoPreview(_lukuAfterPhoto!),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.camera_alt),
+            label: const Text('Take Picture After Adding Units'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8), // Rounded corners
+              ),
+            ),
+            onPressed: () => _takePhoto('luku_after'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhotoPreview(File image) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 4,
+                offset: Offset(2, 2),
+              ),
+            ],
+          ),
+          child: Image.file(
+            image,
+            fit: BoxFit.contain, // Display the entire image
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTextField(String name, String label, bool required) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -306,14 +385,16 @@ class _FormScreenState extends State<FormScreen> {
         name: name,
         controller: _getControllerForField(name),
         decoration: InputDecoration(
-          labelText: label,
+          hintText: label, // Display field name as hint
+          hintStyle: const TextStyle(color: Colors.black54), // Hint text style
           border: const OutlineInputBorder(),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Color(0xFFEEEEEE), // Fixed constant background color
         ),
+        style: const TextStyle(color: Colors.black),
         validator: required
-            ? (value) => value == null || value.toString().trim().isEmpty 
-                ? 'This field is required' 
+            ? (value) => value == null || value.toString().trim().isEmpty
+                ? 'This field is required'
                 : null
             : null,
       ),
@@ -327,33 +408,21 @@ class _FormScreenState extends State<FormScreen> {
         name: name,
         controller: _getControllerForField(name),
         decoration: InputDecoration(
-          labelText: label,
+          hintText: label, // Display field name as hint
+          hintStyle: const TextStyle(color: Colors.black54), // Hint text style
           border: const OutlineInputBorder(),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Color(0xFFEEEEEE), // Fixed constant background color
         ),
+        style: const TextStyle(color: Colors.black),
         keyboardType: TextInputType.number,
         validator: required
             ? (value) {
                 if (value == null || value.toString().trim().isEmpty) return 'This field is required';
-                if (double.tryParse(value.toString().trim()) == null) return 'Enter valid number';
+                if (double.tryParse(value.toString().trim()) == null) return 'Enter a valid number';
                 return null;
               }
             : null,
-      ),
-    );
-  }
-
-  Widget _buildPhotoPreview(File image) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.file(
-          image,
-          height: 150,
-          fit: BoxFit.cover,
-        ),
       ),
     );
   }

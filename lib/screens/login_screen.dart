@@ -8,12 +8,18 @@ import 'dart:async';
 import '../../firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
+  LoginScreen({super.key});
+
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-
-  LoginScreen({super.key});
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -49,11 +55,10 @@ class LoginScreen extends StatelessWidget {
                         height: 100,
                       ),
                       const SizedBox(height: 24),
-                      // Change username to email in your TextFormField
                       TextFormField(
-                        controller: _emailController, // Changed from _usernameController
+                        controller: _emailController,
                         decoration: const InputDecoration(
-                          labelText: 'Email', // Changed from Username
+                          labelText: 'Email',
                           prefixIcon: Icon(Icons.email),
                         ),
                         validator: (value) {
@@ -91,46 +96,57 @@ class LoginScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          onPressed: () async {
-                            if (_formKey.currentState!.validate()) {
-                              try {
-                                final user = await AuthService.login(
-                                  _emailController.text.trim(),
-                                  _passwordController.text.trim(),
-                                );
+                          onPressed: _isLoading
+                              ? null
+                              : () async {
+                                  if (_formKey.currentState!.validate()) {
+                                    setState(() {
+                                      _isLoading = true;
+                                    });
+                                    try {
+                                      final user = await AuthService.login(
+                                        _emailController.text.trim(),
+                                        _passwordController.text.trim(),
+                                      );
 
-                                if (user != null) {
-                                  // Get user document
-                                  final doc = await FirebaseFirestore.instance
-                                      .collection('users')
-                                      .doc(user.uid)
-                                      .get();
-                                      
-                                  if (doc.exists) {
-                                    final role = doc.data()?['role'] ?? 'user';
-                                    Navigator.pushReplacementNamed(
-                                      context,
-                                      role == 'admin' ? '/admin' : '/form',
-                                    );
-                                  } else {
-                                    // Handle case where user document doesn't exist
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('User data not found')),
-                                    );
+                                      if (user != null) {
+                                        final doc = await FirebaseFirestore.instance
+                                            .collection('users')
+                                            .doc(user.uid)
+                                            .get();
+                                        
+                                        if (doc.exists) {
+                                          final role = doc.data()?['role'] ?? 'user';
+                                          Navigator.pushReplacementNamed(
+                                            context,
+                                            role == 'admin' ? '/admin' : '/form',
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('User data not found')),
+                                          );
+                                        }
+                                      } else {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('Invalid email or password')),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Error: ${e.toString()}')),
+                                      );
+                                    } finally {
+                                      setState(() {
+                                        _isLoading = false;
+                                      });
+                                    }
                                   }
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Invalid email or password')),
-                                  );
-                                }
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Error: ${e.toString()}')),
-                                );
-                              }
-                            }
-                          },
-                          child: const Text('LOGIN'),
+                                },
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : const Text('LOGIN'),
                         ),
                       ),
                       const SizedBox(height: 16),

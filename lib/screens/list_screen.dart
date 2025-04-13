@@ -64,6 +64,10 @@ class _ListScreenState extends State<ListScreen> {
             onPressed: _isLoading ? null : _loadReports,
           ),
           IconButton(
+            icon: const Icon(Icons.download), // Add export button
+            onPressed: _isLoading ? null : _exportData, // Call the export method
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => Navigator.pushReplacementNamed(context, '/'),
           ),
